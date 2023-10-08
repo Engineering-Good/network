@@ -1,0 +1,131 @@
+# Set the hostname
+/system identity set name=CCR1009
+
+# Configure NTP client
+/system ntp client
+set enabled=yes primary-ntp=0.pool.ntp.org secondary-ntp=1.pool.ntp.org
+
+# Set timezone
+/system clock
+set time-zone-name=auto
+
+# Create a username and password for management
+/user
+add name=admin password=YOUR_PASSWORD group=full
+
+# Enable SSH for remote access (optional)
+/ip ssh
+set strong-crypto=yes
+
+# Set DNS servers
+/ip dns
+set servers=1.1.1.2,1.0.0.2
+
+# Configure VLANs
+/interface vlan
+add name=vlan10 interface=ether1 vlan-id=10
+add name=vlan20 interface=ether1 vlan-id=20
+add name=vlan30 interface=ether1 vlan-id=30
+
+# Set VLAN 20 as the native VLAN on Ether 1, 2, 3, and 4
+/interface ethernet switch port
+set [ find default-name=ether1 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=ether2 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=ether3 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=ether4 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=ether5 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=10
+set [ find default-name=ether6 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=10
+set [ find default-name=ether7 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=30
+set [ find default-name=ether8 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=ether9 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=10
+
+# Configure IP addresses for VLANs
+/ip address
+add address=192.168.10.10/24 interface=vlan10
+add address=192.168.54.10/23 interface=vlan20
+add address=192.168.30.10/24 interface=vlan30
+
+# Configure DHCP for all vlans
+/ip dhcp-server
+add address-pool=dhcp-pool-vlan20 disabled=no interface=vlan20 name=dhcp-vlan20 lease-time=3600s
+add address-pool=dhcp-pool-vlan30 disabled=no interface=vlan30 name=dhcp-vlan30 lease-time=3600s
+add address-pool=dhcp-pool-vlan10 disabled=no interface=vlan10 name=dhcp-vlan10 lease-time=28800s
+
+# Define IP address pools
+/ip pool
+add name=dhcp-pool-vlan20 ranges=192.168.54.30-192.168.55.254
+add name=dhcp-pool-vlan10 ranges=192.168.10.30-192.168.10.254
+add name=dhcp-pool-vlan30 ranges=192.168.30.30-192.168.30.254
+
+# Configure WAN interfaces
+/interface bonding
+add name=bonding1 slaves=ether3,ether4 mode=balance-rr primary=ether3 arp=enabled link-monitoring=mii
+
+# Configure DHCP client for WAN interfaces to obtain gateway IPs
+/ip dhcp-client
+add interface=ether3
+add interface=ether4
+
+# Configure default routes with equal distance
+/ip route
+add dst-address=0.0.0.0/0 gateway=bonding1 distance=1
+
+# Configure NAT for outgoing traffic
+/ip firewall nat
+add chain=srcnat action=masquerade out-interface=bonding1
+
+# Create firewall rules to allow inter-VLAN communication between VLAN 10 and VLAN 20
+/ip firewall filter
+add chain=forward action=accept src-address=192.168.10.0/24 dst-address=192.168.54.0/23
+add chain=forward action=accept src-address=192.168.54.0/23 dst-address=192.168.10.0/24
+
+# Create firewall rules to block VLAN 20 from communicating with VLAN 10
+/ip firewall filter
+add chain=forward action=drop src-address=192.168.54.0/23 dst-address=192.168.10.0/24
+
+# Create firewall rules to block VLAN 30 from communicating to VLAN 10 and 20
+/ip firewall filter
+add chain=forward action=drop src-address=192.168.30.0/24 dst-address=192.168.10.0/24
+add chain=forward action=drop src-address=192.168.30.0/24 dst-address=192.168.54.0/23
+
+# Create firewall rules to block VLAN 10 and 20 from communicating to VLAN 30
+/ip firewall filter
+add chain=forward action=drop src-address=192.168.10.0/24 dst-address=192.168.30.0/24
+add chain=forward action=drop src-address=192.168.54.0/23 dst-address=192.168.30.0/24
+
+# Configure CAPsMAN
+/caps-man configuration
+add name=cfg1 datapath.bridge=bridge-local
+
+# Define Wireless Security Profile
+/caps-man security-profile
+set [ find default=yes ] supplicant-identity=MikroTik
+
+# Define Wireless Configurations for SSIDs with Passwords
+/caps-man configuration
+add name=wifi-office ssid=EngineeringGood security=security-profiles-wpa2 vlan-mode=use-tag vlan-id=10 encryption=aes-ccm passphrase=<PASSWORD_1>
+add name=wifi-guest ssid=EngineeringGood_Guest security=security-profiles-wpa2 vlan-mode=use-tag vlan-id=30 encryption=aes-ccm passphrase=<PASSWORD_2>
+add name=wifi-qc ssid=EngineeringGood_QC security=security-profiles-wpa2 vlan-mode=use-tag vlan-id=20 encryption=aes-ccm passphrase=<PASSWORD_3>
+
+# Define CAP Interfaces for Each CAP (adjust interfaces as needed)
+/caps-man manager interface
+add disabled=no interface=bridge-local
+
+# Define Provisioning Rules to Attach CAPs to Configurations
+/caps-man provisioning
+add action=create-dynamic-enabled hw-supported-modes=gn host-config=wifi-office name-format=identity name=rule1
+add action=create-dynamic-enabled hw-supported-modes=gn host-config=wifi-guest name-format=identity name=rule2
+add action=create-dynamic-enabled hw-supported-modes=gn host-config=wifi-qc name-format=identity name=rule3
+
+# Configure CAP Interfaces for Each CAP (adjust interface names as needed)
+/interface wireless cap
+set bridge=bridge-local caps-man-certificate-check=none discover=no hw-supported-modes=gn interfaces=ether2
+
+/interface wireless cap
+set bridge=bridge-local caps-man-certificate-check=none discover=no hw-supported-modes=gn interfaces=ether3
+
+/interface wireless cap
+set bridge=bridge-local caps-man-certificate-check=none discover=no hw-supported-modes=gn interfaces=ether4
+
+/interface wireless cap
+set bridge=bridge-local caps-man-certificate-check=none discover=no hw-supported-modes=gn interfaces=ether5

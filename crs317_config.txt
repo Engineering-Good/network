@@ -1,0 +1,63 @@
+# Set the hostname
+/system identity set name=CRS317
+
+# Configure NTP client
+/system ntp client
+set enabled=yes primary-ntp=0.pool.ntp.org secondary-ntp=1.pool.ntp.org
+
+# Set timezone
+/system clock
+set time-zone-name=Asia/Singapore
+
+# Create a username and password for management
+/user
+add name=admin password=YOUR_PASSWORD group=full
+
+# Enable SSH for remote access (optional)
+/ip ssh
+set strong-crypto=yes
+
+# Set DNS servers
+/ip dns
+set servers=1.1.1.2,1.0.0.2
+
+# Configure VLANs
+/interface vlan
+add name=vlan10 vlan-id=10
+add name=vlan20 vlan-id=20
+add name=vlan30 vlan-id=30
+
+# Create VLAN 20 as the native VLAN on SFP+ ports (port 1 to 28)
+/interface ethernet switch port
+set [ find default-name=sfp-sfpplus1 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus2 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus3 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus4 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus5 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus6 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus7 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus8 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus9 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus10 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus11 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus12 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus13 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus14 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus15 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus16 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus17 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus18 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus19 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus20 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus21 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus22 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus23 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus24 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus25 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus26 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus27 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+set [ find default-name=sfp-sfpplus28 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
+
+# Create VLAN 10 as the native VLAN on the copper port (port 29)
+/interface ethernet switch port
+set [ find default-name=ether29 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=10
