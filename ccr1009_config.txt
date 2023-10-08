@@ -7,7 +7,7 @@ set enabled=yes primary-ntp=0.pool.ntp.org secondary-ntp=1.pool.ntp.org
 
 # Set timezone
 /system clock
-set time-zone-name=auto
+set time-zone-name=Asia/Singapore
 
 # Create a username and password for management
 /user
@@ -27,7 +27,7 @@ add name=vlan10 interface=ether1 vlan-id=10
 add name=vlan20 interface=ether1 vlan-id=20
 add name=vlan30 interface=ether1 vlan-id=30
 
-# Set VLAN 20 as the native VLAN on Ether 1, 2, 3, and 4
+# Set VLAN 20 as the native VLAN 
 /interface ethernet switch port
 set [ find default-name=ether1 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
 set [ find default-name=ether2 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
@@ -39,11 +39,11 @@ set [ find default-name=ether7 ] vlan-mode=secure vlan-header=add-if-missing vla
 set [ find default-name=ether8 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=20
 set [ find default-name=ether9 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=10
 
-# Configure IP addresses for VLANs
+# Configure IP addresses (GW) for each VLAN
 /ip address
-add address=192.168.10.10/24 interface=vlan10
-add address=192.168.54.10/23 interface=vlan20
-add address=192.168.30.10/24 interface=vlan30
+add address=192.168.10.1/24 interface=vlan10
+add address=192.168.54.1/23 interface=vlan20
+add address=192.168.30.1/24 interface=vlan30
 
 # Configure DHCP for all vlans
 /ip dhcp-server
@@ -129,3 +129,8 @@ set bridge=bridge-local caps-man-certificate-check=none discover=no hw-supported
 
 /interface wireless cap
 set bridge=bridge-local caps-man-certificate-check=none discover=no hw-supported-modes=gn interfaces=ether5
+
+# Create firewall rule to allow communication with the gateway but block inter-client communication on wifi-guest
+/ip firewall filter
+add chain=forward action=accept src-address=192.168.30.0/24 dst-address=192.168.30.1
+add chain=forward action=drop src-address=192.168.30.0/24 dst-address=192.168.30.0/24

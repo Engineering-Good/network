@@ -61,3 +61,7 @@ set [ find default-name=sfp-sfpplus28 ] vlan-mode=secure vlan-header=add-if-miss
 # Create VLAN 10 as the native VLAN on the copper port (port 29)
 /interface ethernet switch port
 set [ find default-name=ether29 ] vlan-mode=secure vlan-header=add-if-missing vlan-default=10
+
+# Configure IP address
+/ip address
+add address=192.168.54.11/24 interface=vlan20
