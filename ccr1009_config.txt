@@ -57,22 +57,30 @@ add name=dhcp-pool-vlan20 ranges=192.168.54.30-192.168.55.254
 add name=dhcp-pool-vlan10 ranges=192.168.10.30-192.168.10.254
 add name=dhcp-pool-vlan30 ranges=192.168.30.30-192.168.30.254
 
-# Configure WAN interfaces
-/interface bonding
-add name=bonding1 slaves=ether3,ether4 mode=balance-rr primary=ether3 arp=enabled link-monitoring=mii
-
 # Configure DHCP client for WAN interfaces to obtain gateway IPs
 /ip dhcp-client
-add interface=ether3
-add interface=ether4
+add interface=ether3 disabled=no
+add interface=ether4 disabled=no
 
-# Configure default routes with equal distance
-/ip route
-add dst-address=0.0.0.0/0 gateway=bonding1 distance=1
+# Create a routing mark for each WAN interface
+/ip firewall mangle
+add chain=prerouting action=mark-connection new-connection-mark=wan1_conn passthrough=yes in-interface=ether3
+add chain=prerouting action=mark-connection new-connection-mark=wan2_conn passthrough=yes in-interface=ether4
 
-# Configure NAT for outgoing traffic
+# Set up PCC with connection stickiness
+/ip firewall mangle
+add chain=prerouting action=mark-routing connection-mark=wan1_conn in-interface=ether3 new-routing-mark=wan1_route
+add chain=prerouting action=mark-routing connection-mark=wan2_conn in-interface=ether4 new-routing-mark=wan2_route
+
+# Configure NAT for outgoing traffic on both WAN interfaces
 /ip firewall nat
-add chain=srcnat action=masquerade out-interface=bonding1
+add chain=srcnat out-interface=ether3 action=masquerade routing-mark=wan1_route
+add chain=srcnat out-interface=ether4 action=masquerade routing-mark=wan2_route
+
+# Add default routes with gateway addresses and distance 1 for both
+/ip route
+add dst-address=0.0.0.0/0 gateway=ether3 routing-mark=wan1_route distance=1 check-gateway=ping
+add dst-address=0.0.0.0/0 gateway=ether4 routing-mark=wan2_route distance=1 check-gateway=ping
 
 # Create firewall rules to allow inter-VLAN communication between VLAN 10 and VLAN 20
 /ip firewall filter
@@ -119,7 +127,6 @@ add disabled=no interface=ether5
 add action=create-dynamic-enabled hw-supported-modes=gn host-config=wifi-office name-format=identity name=rule1
 add action=create-dynamic-enabled hw-supported-modes=gn host-config=wifi-guest name-format=identity name=rule2
 add action=create-dynamic-enabled hw-supported-modes=gn host-config=wifi-qc name-format=identity name=rule3
-
 
 # Create firewall rule to allow communication with the gateway but block inter-client communication on wifi-guest
 /ip firewall filter
