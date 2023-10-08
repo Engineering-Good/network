@@ -13,7 +13,7 @@ set time-zone-name=Asia/Singapore
 /user
 add name=admin password=YOUR_PASSWORD group=full
 
-# Enable SSH for remote access (optional)
+# Enable SSH
 /ip ssh
 set strong-crypto=yes
 
@@ -93,9 +93,9 @@ add chain=forward action=drop src-address=192.168.30.0/24 dst-address=192.168.54
 add chain=forward action=drop src-address=192.168.10.0/24 dst-address=192.168.30.0/24
 add chain=forward action=drop src-address=192.168.54.0/23 dst-address=192.168.30.0/24
 
-# Configure CAPsMAN
+# Configure CAPsMAN for WIFI
 /caps-man configuration
-add name=cfg1 datapath.bridge=bridge-local
+add name=cfg1 datapath.bridge=none
 
 # Define Wireless Security Profile
 /caps-man security-profile
@@ -109,7 +109,10 @@ add name=wifi-qc ssid=EngineeringGood_QC security=security-profiles-wpa2 vlan-mo
 
 # Define CAP Interfaces for Each CAP (adjust interfaces as needed)
 /caps-man manager interface
-add disabled=no interface=bridge-local
+add disabled=no interface=ether2
+add disabled=no interface=ether3
+add disabled=no interface=ether4
+add disabled=no interface=ether5
 
 # Define Provisioning Rules to Attach CAPs to Configurations
 /caps-man provisioning
@@ -117,18 +120,6 @@ add action=create-dynamic-enabled hw-supported-modes=gn host-config=wifi-office 
 add action=create-dynamic-enabled hw-supported-modes=gn host-config=wifi-guest name-format=identity name=rule2
 add action=create-dynamic-enabled hw-supported-modes=gn host-config=wifi-qc name-format=identity name=rule3
 
-# Configure CAP Interfaces for Each CAP (adjust interface names as needed)
-/interface wireless cap
-set bridge=bridge-local caps-man-certificate-check=none discover=no hw-supported-modes=gn interfaces=ether2
-
-/interface wireless cap
-set bridge=bridge-local caps-man-certificate-check=none discover=no hw-supported-modes=gn interfaces=ether3
-
-/interface wireless cap
-set bridge=bridge-local caps-man-certificate-check=none discover=no hw-supported-modes=gn interfaces=ether4
-
-/interface wireless cap
-set bridge=bridge-local caps-man-certificate-check=none discover=no hw-supported-modes=gn interfaces=ether5
 
 # Create firewall rule to allow communication with the gateway but block inter-client communication on wifi-guest
 /ip firewall filter
