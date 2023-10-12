@@ -57,35 +57,43 @@ add name=dhcp-pool-vlan20 ranges=192.168.54.30-192.168.55.254
 add name=dhcp-pool-vlan10 ranges=192.168.10.30-192.168.10.254
 add name=dhcp-pool-vlan30 ranges=192.168.30.30-192.168.30.254
 
-# Configure DHCP client for WAN interfaces to obtain gateway IPs
+# Configure DHCP client for WAN interface4 and Interface3
 /ip dhcp-client
-add interface=ether3 disabled=no
 add interface=ether4 disabled=no
+add interface=ether3 disabled=no
 
-# Create a routing mark for each WAN interface
+## Assign a static IP address to ether3
+#/ip address
+#add address=66.96.196.79/24 interface=ether3 network=66.96.196.0
+
+# Firewall Mangle Rules
+# Mark connections based on the incoming VLAN interface
 /ip firewall mangle
-add chain=prerouting action=mark-connection new-connection-mark=wan1_conn passthrough=yes in-interface=ether3
-add chain=prerouting action=mark-connection new-connection-mark=wan2_conn passthrough=yes in-interface=ether4
+add chain=prerouting action=mark-connection new-connection-mark=vlan10_conn passthrough=yes in-interface=vlan10
+add chain=prerouting action=mark-connection new-connection-mark=vlan20_conn passthrough=yes in-interface=vlan20
+add chain=prerouting action=mark-connection new-connection-mark=vlan30_conn passthrough=yes in-interface=vlan30
 
-# Set up PCC with connection stickiness
-/ip firewall mangle
-add chain=prerouting action=mark-routing connection-mark=wan1_conn in-interface=ether3 new-routing-mark=wan1_route
-add chain=prerouting action=mark-routing connection-mark=wan2_conn in-interface=ether4 new-routing-mark=wan2_route
+# Mark routing for connections based on the connection mark (PCC)
+add chain=prerouting action=mark-routing connection-mark=vlan10_conn in-interface=vlan10 new-routing-mark=vlan10_route
+add chain=prerouting action=mark-routing connection-mark=vlan20_conn in-interface=vlan20 new-routing-mark=vlan20_route
+add chain=prerouting action=mark-routing connection-mark=vlan30_conn in-interface=vlan30 new-routing-mark=vlan30_route
 
-# Configure NAT for outgoing traffic on both WAN interfaces
+# NAT Configuration
+# NAT outgoing traffic for each VLAN based on the routing mark
 /ip firewall nat
-add chain=srcnat out-interface=ether3 action=masquerade routing-mark=wan1_route
-add chain=srcnat out-interface=ether4 action=masquerade routing-mark=wan2_route
+add chain=srcnat out-interface=ether4 action=masquerade routing-mark=vlan10_route
+add chain=srcnat out-interface=ether3 action=masquerade routing-mark=vlan20_route
+add chain=srcnat out-interface=ether4 action=masquerade routing-mark=vlan30_route
 
-# Add default routes with gateway addresses and distance 1 for both
+# Routing Configuration
 /ip route
-add dst-address=0.0.0.0/0 gateway=ether3 routing-mark=wan1_route distance=1 check-gateway=ping
-add dst-address=0.0.0.0/0 gateway=ether4 routing-mark=wan2_route distance=1 check-gateway=ping
-
-# Create firewall rules to allow inter-VLAN communication between VLAN 10 and VLAN 20
-/ip firewall filter
-add chain=forward action=accept src-address=192.168.10.0/24 dst-address=192.168.54.0/23
-add chain=forward action=accept src-address=192.168.54.0/23 dst-address=192.168.10.0/24
+# Default routes for each VLAN using either ether4 as the primary and ether3 as backup
+add dst-address=0.0.0.0/0 gateway=ether4 routing-mark=vlan10_route distance=1 check-gateway=ping
+add dst-address=0.0.0.0/0 gateway=ether3 routing-mark=vlan20_route distance=1 check-gateway=ping
+add dst-address=0.0.0.0/0 gateway=ether4 routing-mark=vlan30_route distance=1 check-gateway=ping
+add dst-address=0.0.0.0/0 gateway=ether3 routing-mark=vlan10_route distance=2 check-gateway=ping
+add dst-address=0.0.0.0/0 gateway=ether4 routing-mark=vlan20_route distance=2 check-gateway=ping
+add dst-address=0.0.0.0/0 gateway=ether3 routing-mark=vlan30_route distance=2 check-gateway=ping
 
 # Create firewall rules to block VLAN 20 from communicating with VLAN 10
 /ip firewall filter
@@ -96,9 +104,8 @@ add chain=forward action=drop src-address=192.168.54.0/23 dst-address=192.168.10
 add chain=forward action=drop src-address=192.168.30.0/24 dst-address=192.168.10.0/24
 add chain=forward action=drop src-address=192.168.30.0/24 dst-address=192.168.54.0/23
 
-# Create firewall rules to block VLAN 10 and 20 from communicating to VLAN 30
+# Create firewall rules to block VLAN 20 from communicating to VLAN 30
 /ip firewall filter
-add chain=forward action=drop src-address=192.168.10.0/24 dst-address=192.168.30.0/24
 add chain=forward action=drop src-address=192.168.54.0/23 dst-address=192.168.30.0/24
 
 # Configure CAPsMAN for WIFI
